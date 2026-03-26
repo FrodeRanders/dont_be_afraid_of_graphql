@@ -54,8 +54,10 @@ public final class StandaloneGraphqlRuntime {
             RuntimeWiring.Builder wiring,
             SampleRepository repository
     ) {
-        ObjectTypeDefinition query = registry.getType("Query", ObjectTypeDefinition.class)
-                .orElseThrow(() -> new IllegalStateException("SDL must define Query"));
+        ObjectTypeDefinition query = registry.getTypeOrNull("Query", ObjectTypeDefinition.class);
+        if (null == query) {
+            throw new IllegalStateException("SDL must define Query");
+        }
 
         wiring.type(query.getName(), builder -> {
             for (FieldDefinition field : query.getFieldDefinitions()) {
