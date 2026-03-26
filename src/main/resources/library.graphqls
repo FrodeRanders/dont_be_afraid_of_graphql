@@ -1,0 +1,29 @@
+type Query {
+    library(id: ID!): Library
+}
+
+type Library {
+    id: ID!
+    name: String!
+    shelves: [Shelf!]!
+    highlighted: FeaturedItem
+}
+
+type Shelf {
+    code: String!
+    featured: FeaturedItem
+}
+
+union FeaturedItem = Book | Gadget
+
+type Book {
+    sku: ID!
+    title: String!
+    author: String!
+}
+
+type Gadget {
+    sku: ID!
+    name: String!
+    warrantyMonths: Int!
+}
