@@ -1,7 +1,6 @@
 # Standalone GraphQL Runtime Example
 
-This directory contains a minimal GraphQL Java example that mirrors the flow described in
-`doc/graphql-runtime-flow.md`, but without any IPTO machinery.
+This directory contains a minimal GraphQL Java example.
 
 The example shows four things:
 
