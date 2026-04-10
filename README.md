@@ -25,6 +25,7 @@ The important split is that resolver setup happens in `StandaloneGraphqlRuntime(
 when GraphQL Java invokes the already-registered `DataFetcher` and `TypeResolver` closures.
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"background": "#ffffff", "primaryColor": "#ffffff", "primaryBorderColor": "#000000", "primaryTextColor": "#000000", "actorBkg": "#ffffff", "actorBorder": "#000000", "actorTextColor": "#000000", "signalColor": "#000000", "signalTextColor": "#000000", "labelTextColor": "#000000", "noteBkgColor": "#ffffff", "noteBorderColor": "#000000", "noteTextColor": "#000000", "sequenceNumberColor": "#000000", "activationBkgColor": "#ffffff", "activationBorderColor": "#000000"}}}%%
 sequenceDiagram
     autonumber
     participant App as App / main / test
@@ -38,47 +39,43 @@ sequenceDiagram
     participant Fetcher as DataFetcher closures
     participant TypeResolver as TypeResolver closures
 
-    rect rgb(239, 247, 255)
-        Note over App,GraphQL: Setup, once per StandaloneGraphqlRuntime instance
-        App->>Runtime: new StandaloneGraphqlRuntime()
-        Runtime->>Parser: parse(loadSdl())
-        Parser-->>Runtime: TypeDefinitionRegistry
-        Runtime->>Wiring: newRuntimeWiring()
-        Runtime->>Repo: new SampleRepository()
-        Runtime->>Registry: get Query fields
-        Runtime->>Wiring: wireQueries(...)
-        Note over Runtime,Fetcher: Creates Query.library fetcher closure capturing fieldName and repository
-        Runtime->>Registry: get object type fields
-        Runtime->>Wiring: wireObjects(...)
-        Note over Runtime,Fetcher: Creates object field fetcher closures capturing typeName, fieldName, fieldTypeName, scalarLike
-        Runtime->>Registry: get union definitions
-        Runtime->>Wiring: wireUnions(...)
-        Note over Runtime,TypeResolver: Creates union resolver closures capturing unionName
-        Runtime->>Generator: makeExecutableSchema(registry, wiring.build())
-        Generator-->>Runtime: GraphQLSchema
-        Runtime->>GraphQL: newGraphQL(schema).build()
-        GraphQL-->>Runtime: reusable GraphQL engine
-    end
+    Note over App,GraphQL: Setup, once per StandaloneGraphqlRuntime instance
+    App->>Runtime: new StandaloneGraphqlRuntime()
+    Runtime->>Parser: parse(loadSdl())
+    Parser-->>Runtime: TypeDefinitionRegistry
+    Runtime->>Wiring: newRuntimeWiring()
+    Runtime->>Repo: new SampleRepository()
+    Runtime->>Registry: get Query fields
+    Runtime->>Wiring: wireQueries(...)
+    Note over Runtime,Fetcher: Creates Query.library fetcher closure capturing fieldName and repository
+    Runtime->>Registry: get object type fields
+    Runtime->>Wiring: wireObjects(...)
+    Note over Runtime,Fetcher: Creates object field fetcher closures capturing typeName, fieldName, fieldTypeName, scalarLike
+    Runtime->>Registry: get union definitions
+    Runtime->>Wiring: wireUnions(...)
+    Note over Runtime,TypeResolver: Creates union resolver closures capturing unionName
+    Runtime->>Generator: makeExecutableSchema(registry, wiring.build())
+    Generator-->>Runtime: GraphQLSchema
+    Runtime->>GraphQL: newGraphQL(schema).build()
+    GraphQL-->>Runtime: reusable GraphQL engine
 
-    rect rgb(246, 255, 246)
-        Note over App,TypeResolver: Query execution, once per request
-        App->>Runtime: execute(query)
-        Runtime->>GraphQL: execute(ExecutionInput(query))
-        GraphQL->>Fetcher: Query.library(env)
-        Fetcher->>Repo: findLibrary(id)
-        Repo-->>Fetcher: Map for library
-        Fetcher-->>GraphQL: Box(library)
-        GraphQL->>Fetcher: Library.id/name/shelves/highlighted(env)
-        Note over GraphQL,Fetcher: env.getSource() is the parent Box and fieldName selects the Map value
-        Fetcher-->>GraphQL: scalar value, Box, RecordBox, or List of boxed values
-        GraphQL->>TypeResolver: FeaturedItem resolver(env)
-        Note over GraphQL,TypeResolver: env.getObject() is a RecordBox preserving Book or Gadget
-        TypeResolver-->>GraphQL: concrete GraphQL object type
-        GraphQL->>Fetcher: Book.* or Gadget.* field fetchers(env)
-        Fetcher-->>GraphQL: selected scalar fields
-        GraphQL-->>Runtime: ExecutionResult
-        Runtime-->>App: ExecutionResult
-    end
+    Note over App,TypeResolver: Query execution, once per request
+    App->>Runtime: execute(query)
+    Runtime->>GraphQL: execute(ExecutionInput(query))
+    GraphQL->>Fetcher: Query.library(env)
+    Fetcher->>Repo: findLibrary(id)
+    Repo-->>Fetcher: Map for library
+    Fetcher-->>GraphQL: Box(library)
+    GraphQL->>Fetcher: Library.id/name/shelves/highlighted(env)
+    Note over GraphQL,Fetcher: env.getSource() is the parent Box and fieldName selects the Map value
+    Fetcher-->>GraphQL: scalar value, Box, RecordBox, or List of boxed values
+    GraphQL->>TypeResolver: FeaturedItem resolver(env)
+    Note over GraphQL,TypeResolver: env.getObject() is a RecordBox preserving Book or Gadget
+    TypeResolver-->>GraphQL: concrete GraphQL object type
+    GraphQL->>Fetcher: Book.* or Gadget.* field fetchers(env)
+    Fetcher-->>GraphQL: selected scalar fields
+    GraphQL-->>Runtime: ExecutionResult
+    Runtime-->>App: ExecutionResult
 ```
 
 In other words, the `TypeDefinitionRegistry` and SDL inspection are setup inputs. They are used to
