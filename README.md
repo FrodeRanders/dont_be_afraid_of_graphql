@@ -25,6 +25,7 @@ The important split is that resolver setup happens in `StandaloneGraphqlRuntime(
 when GraphQL Java invokes the already-registered `DataFetcher` and `TypeResolver` closures.
 
 ```mermaid
+%%{init: {"themeVariables": {"primaryTextColor": "#000000", "actorTextColor": "#000000", "signalColor": "#000000", "signalTextColor": "#000000", "labelTextColor": "#000000", "noteTextColor": "#000000", "sequenceNumberColor": "#000000"}}}%%
 sequenceDiagram
     autonumber
     participant App as App / main / test
