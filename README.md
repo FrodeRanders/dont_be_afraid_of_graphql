@@ -18,6 +18,74 @@ The chosen domain is intentionally small:
 - `Shelf.featured: FeaturedItem`
 - `FeaturedItem = Book | Gadget`
 
+## Request and resolver sequence
+
+The important split is that resolver setup happens in `StandaloneGraphqlRuntime()` when the
+`GraphQL` instance is constructed. Actual resolving happens later, per call to `execute(query)`,
+when GraphQL Java invokes the already-registered `DataFetcher` and `TypeResolver` closures.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as App / main / test
+    participant Runtime as StandaloneGraphqlRuntime
+    participant Parser as SchemaParser
+    participant Registry as TypeDefinitionRegistry
+    participant Wiring as RuntimeWiring.Builder
+    participant Generator as SchemaGenerator
+    participant GraphQL as GraphQL
+    participant Repo as SampleRepository
+    participant Fetcher as DataFetcher closures
+    participant TypeResolver as TypeResolver closures
+
+    rect rgb(239, 247, 255)
+        Note over App,GraphQL: Setup, once per StandaloneGraphqlRuntime instance
+        App->>Runtime: new StandaloneGraphqlRuntime()
+        Runtime->>Parser: parse(loadSdl())
+        Parser-->>Runtime: TypeDefinitionRegistry
+        Runtime->>Wiring: newRuntimeWiring()
+        Runtime->>Repo: new SampleRepository()
+        Runtime->>Registry: get Query fields
+        Runtime->>Wiring: wireQueries(...)
+        Note over Runtime,Fetcher: Creates Query.library fetcher closure capturing fieldName and repository
+        Runtime->>Registry: get object type fields
+        Runtime->>Wiring: wireObjects(...)
+        Note over Runtime,Fetcher: Creates object field fetcher closures capturing typeName, fieldName, fieldTypeName, scalarLike
+        Runtime->>Registry: get union definitions
+        Runtime->>Wiring: wireUnions(...)
+        Note over Runtime,TypeResolver: Creates union resolver closures capturing unionName
+        Runtime->>Generator: makeExecutableSchema(registry, wiring.build())
+        Generator-->>Runtime: GraphQLSchema
+        Runtime->>GraphQL: newGraphQL(schema).build()
+        GraphQL-->>Runtime: reusable GraphQL engine
+    end
+
+    rect rgb(246, 255, 246)
+        Note over App,TypeResolver: Query execution, once per request
+        App->>Runtime: execute(query)
+        Runtime->>GraphQL: execute(ExecutionInput(query))
+        GraphQL->>Fetcher: Query.library(env)
+        Fetcher->>Repo: findLibrary(id)
+        Repo-->>Fetcher: Map for library
+        Fetcher-->>GraphQL: Box(library)
+        GraphQL->>Fetcher: Library.id/name/shelves/highlighted(env)
+        Note over Fetcher: env.getSource() is the parent Box; fieldName selects the Map value
+        Fetcher-->>GraphQL: scalar value, Box, RecordBox, or List of boxed values
+        GraphQL->>TypeResolver: FeaturedItem resolver(env)
+        Note over TypeResolver: env.getObject() is a RecordBox preserving Book or Gadget
+        TypeResolver-->>GraphQL: concrete GraphQL object type
+        GraphQL->>Fetcher: Book.* or Gadget.* field fetchers(env)
+        Fetcher-->>GraphQL: selected scalar fields
+        GraphQL-->>Runtime: ExecutionResult
+        Runtime-->>App: ExecutionResult
+    end
+```
+
+In other words, the `TypeDefinitionRegistry` and SDL inspection are setup inputs. They are used to
+create runtime wiring and closures, but they are not re-inspected for each field during query
+execution. During execution, GraphQL Java walks the query against the executable schema and calls the
+closures that were registered during setup.
+
 ## Closure trick
 
 Each field resolver is created while iterating over the SDL. The resolver captures:
