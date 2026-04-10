@@ -69,10 +69,10 @@ sequenceDiagram
         Repo-->>Fetcher: Map for library
         Fetcher-->>GraphQL: Box(library)
         GraphQL->>Fetcher: Library.id/name/shelves/highlighted(env)
-        Note over Fetcher: env.getSource() is the parent Box; fieldName selects the Map value
+        Note over GraphQL,Fetcher: env.getSource() is the parent Box and fieldName selects the Map value
         Fetcher-->>GraphQL: scalar value, Box, RecordBox, or List of boxed values
         GraphQL->>TypeResolver: FeaturedItem resolver(env)
-        Note over TypeResolver: env.getObject() is a RecordBox preserving Book or Gadget
+        Note over GraphQL,TypeResolver: env.getObject() is a RecordBox preserving Book or Gadget
         TypeResolver-->>GraphQL: concrete GraphQL object type
         GraphQL->>Fetcher: Book.* or Gadget.* field fetchers(env)
         Fetcher-->>GraphQL: selected scalar fields
